@@ -1,6 +1,10 @@
 package app.sadlamas.texteditor
 
+import android.content.Intent
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Bundle
+import android.preference.PreferenceManager
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
@@ -12,6 +16,7 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 
+@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
 
     private val FILENAME = "sample.txt"
@@ -34,6 +39,43 @@ class MainActivity : AppCompatActivity() {
         mEditor = mBinding.editor
     }
 
+    override fun onResume() {
+        super.onResume()
+        val mPrefs = PreferenceManager.getDefaultSharedPreferences(this)
+
+        if (mPrefs.getBoolean(getString(R.string.pref_openmode), false)) {
+            openFile(FILENAME)
+        }
+
+        val size = mPrefs.getString(getString(R.string.pref_size), "20")?.toFloat()
+        mEditor.textSize = size!!
+
+        val regular = mPrefs.getString(getString(R.string.pref_style), "")
+        var typeface = Typeface.NORMAL
+        if (regular!!.contains("Полужирный")) {
+            typeface += Typeface.BOLD
+        }
+        if (regular.contains("Курсив")) {
+            typeface += Typeface.ITALIC
+        }
+        mEditor.setTypeface(null, typeface)
+
+        val colorPref = mPrefs.getString(getString(R.string.pref_color), "Черный")
+        var color = Color.BLACK
+        when (colorPref) {
+            "Черный" -> color = Color.BLACK
+            "Красный" -> color = Color.RED
+            "Синий" -> color = Color.BLUE
+            "Зеленый" -> color = Color.GREEN
+        }
+        mEditor.setTextColor(color)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveFile(FILENAME)
+    }
+
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
@@ -41,12 +83,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_open -> {
-                openFile(FILENAME)
-                true
-            }
-            R.id.action_save -> {
-                saveFile(FILENAME)
+            R.id.action_settings -> {
+                val intent = Intent(this, SettingsActivity::class.java)
+                startActivity(intent)
                 true
             }
             else -> true
@@ -65,7 +104,7 @@ class MainActivity : AppCompatActivity() {
                 while (true) {
                     val line = reader.readLine() ?: break
                     line.let {
-                        builder.append("$it\n");
+                        builder.append("$it\n")
                     }
                 }
                 inputStream.close()
